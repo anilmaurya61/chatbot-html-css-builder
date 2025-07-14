@@ -1,12 +1,16 @@
 'use client';
 
-import { useState } from 'react';
+import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react';
 
 export default function Dashboard() {
   const [previewHTML, setPreviewHTML] = useState('');
   const [messages, setMessages] = useState<{ role: string; content: string }[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const { status } = useSession();
+  const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,8 +33,19 @@ export default function Dashboard() {
         setMessages(updatedMessages);
         const htmlMatch = data.content.match(/<html[\s\S]*<\/html>/i);
         const htmlCode = htmlMatch ? htmlMatch[0] : data.content;
-
-        setPreviewHTML(htmlCode);
+        const injectedScript = `
+          <script>
+            document.addEventListener('DOMContentLoaded', function () {
+              document.querySelectorAll('a[href="#"]').forEach(anchor => {
+                anchor.addEventListener('click', function (e) {
+                  e.preventDefault();
+                  console.log('Navigation prevented for:', anchor.textContent);
+                });
+              });
+            });
+          </script>
+        `;
+        setPreviewHTML(htmlCode+injectedScript);
       } else {
         alert('Error: No content received from AI');
       }
@@ -43,6 +58,16 @@ export default function Dashboard() {
     }
   };
 
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.push('/signup') 
+    }
+  }, [status, router])
+
+  if (status === 'loading') {
+    return <div>Loading...</div>
+  }
+  
   return (
     <div className="flex min-h-screen p-6 gap-6 bg-[#121212] text-white">
       {/* Left Side: Chat Interface */}

@@ -12,9 +12,6 @@ export default function Header() {
         HTML/CSS Chatbot
       </Link>
       <nav className="flex gap-4 items-center">
-        <Link href="/dashboard" className="text-gray-300 hover:text-white transition">
-          Dashboard
-        </Link>
         {!session && (
           <>
             <Link href="/login" className="text-gray-300 hover:text-white transition">
