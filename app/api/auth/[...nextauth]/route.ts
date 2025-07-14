@@ -1,11 +1,9 @@
 import NextAuth from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { compare } from "bcryptjs";
-import { PrismaAdapter } from "@auth/prisma-adapter";
 import prisma from "@/lib/prisma";
 
 const handler = NextAuth({
-  // ✅ Enable JWT session strategy
   session: {
     strategy: "jwt",
   },
@@ -22,7 +20,7 @@ const handler = NextAuth({
         }
 
         const user = await prisma.user.findUnique({
-          where: { email: credentials?.email },
+          where: { email: credentials.email },
         });
 
         if (!user || !user.password) {
@@ -34,11 +32,14 @@ const handler = NextAuth({
           throw new Error("Invalid password");
         }
 
-        return user;
+        return {
+          id: user.id,
+          email: user.email ?? "",
+          name: user.name ?? "",
+        };
       },
     }),
   ],
-  // (Optional) Add JWT callbacks if you want to include more user info in the token
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
@@ -48,9 +49,9 @@ const handler = NextAuth({
       return token;
     },
     async session({ session, token }) {
-      if (token) {
-        (session.user as any).id = token.id;
-        (session.user as any).email = token.email;
+      if (session.user && token) {
+        session.user.id = token.id as string;
+        session.user.email = token.email as string;
       }
       return session;
     },
