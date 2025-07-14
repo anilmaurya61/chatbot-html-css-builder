@@ -1,0 +1,91 @@
+'use client';
+
+import { useState } from 'react';
+
+export default function Dashboard() {
+  const [previewHTML, setPreviewHTML] = useState('');
+  const [messages, setMessages] = useState<{ role: string; content: string }[]>([]);
+  const [input, setInput] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!input.trim()) return;
+
+    const newMessages = [...messages, { role: 'user', content: input }];
+    setMessages(newMessages);
+    setLoading(true);
+
+    try {
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: newMessages }),
+      });
+
+      const data = await res.json();
+      if (data.content) {
+        const updatedMessages = [...newMessages, { role: 'assistant', content: data.content }];
+        setMessages(updatedMessages);
+        const htmlMatch = data.content.match(/<html[\s\S]*<\/html>/i);
+        const htmlCode = htmlMatch ? htmlMatch[0] : data.content;
+
+        setPreviewHTML(htmlCode);
+      } else {
+        alert('Error: No content received from AI');
+      }
+    } catch (err) {
+      console.error('API error:', err);
+      alert('Failed to get response');
+    } finally {
+      setLoading(false);
+      setInput('');
+    }
+  };
+
+  return (
+    <div className="flex min-h-screen p-6 gap-6 bg-[#121212] text-white">
+      {/* Left Side: Chat Interface */}
+      <div className="w-1/2 space-y-4">
+        <h2 className="text-lg font-semibold mb-2 text-gray-200">Chat Interface</h2>
+        <div className="bg-[#1e1e1e] p-4 rounded-xl shadow h-[75vh] overflow-y-auto border border-[#2e2e2e]">
+          {messages.map((m, idx) => (
+            <div key={idx} className="mb-4">
+              <strong className="text-gray-400">{m.role === 'user' ? 'You' : 'Bot'}:</strong>
+              <pre className="bg-[#2a2a2a] text-gray-100 p-2 rounded text-sm whitespace-pre-wrap">
+                {m.content}
+              </pre>
+            </div>
+          ))}
+        </div>
+        <form onSubmit={handleSubmit} className="flex gap-2">
+          <input
+            className="flex-1 bg-[#1e1e1e] border border-[#333] text-white rounded-xl p-2 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="Describe the page layout..."
+            disabled={loading}
+          />
+          <button
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 rounded-xl transition disabled:opacity-50"
+            disabled={loading}
+          >
+            {loading ? 'Sending...' : 'Send'}
+          </button>
+        </form>
+      </div>
+
+      {/* Right Side: Live Preview */}
+      <div className="w-1/2">
+        <h2 className="text-lg font-semibold mb-2 text-gray-200">Live Preview</h2>
+        <iframe
+          className="border border-[#2e2e2e] w-full h-[80vh] rounded-xl bg-[#1e1e1e]"
+          srcDoc={previewHTML}
+          sandbox="allow-same-origin allow-popups allow-forms allow-scripts"
+          allow="clipboard-write"
+          title="Live HTML Preview"
+        />
+      </div>
+    </div>
+  );
+}
