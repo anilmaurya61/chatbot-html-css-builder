@@ -11,6 +11,21 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(false);
   const { status } = useSession();
   const router = useRouter();
+  const handleDownload = () => {
+  if (!previewHTML) return;
+
+  const blob = new Blob([previewHTML], { type: 'text/html' });
+  const url = URL.createObjectURL(blob);
+
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = 'landing-page.html'; // Download as single HTML file
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+
+  URL.revokeObjectURL(url);
+};
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,7 +60,7 @@ export default function Dashboard() {
             });
           </script>
         `;
-        setPreviewHTML(htmlCode+injectedScript);
+        setPreviewHTML(htmlCode + injectedScript);
       } else {
         alert('Error: No content received from AI');
       }
@@ -60,20 +75,21 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (status === 'unauthenticated') {
-      router.push('/signup') 
+      router.push('/signup');
     }
-  }, [status, router])
+  }, [status, router]);
 
   if (status === 'loading') {
-    return <div>Loading...</div>
+    return <div>Loading...</div>;
   }
-  
+
   return (
-    <div className="flex min-h-screen p-6 gap-6 bg-[#121212] text-white">
+    <div className="flex flex-col lg:flex-row min-h-screen p-4 md:p-6 gap-4 md:gap-6 bg-[#121212] text-white">
+      
       {/* Left Side: Chat Interface */}
-      <div className="w-1/2 space-y-4">
+      <div className="w-full lg:w-1/2 space-y-4">
         <h2 className="text-lg font-semibold mb-2 text-gray-200">Chat Interface</h2>
-        <div className="bg-[#1e1e1e] p-4 rounded-xl shadow h-[75vh] overflow-y-auto border border-[#2e2e2e]">
+        <div className="bg-[#1e1e1e] p-4 rounded-xl shadow h-[50vh] md:h-[65vh] lg:h-[75vh] overflow-y-auto border border-[#2e2e2e]">
           {messages.map((m, idx) => (
             <div key={idx} className="mb-4">
               <strong className="text-gray-400">{m.role === 'user' ? 'You' : 'Bot'}:</strong>
@@ -83,7 +99,7 @@ export default function Dashboard() {
             </div>
           ))}
         </div>
-        <form onSubmit={handleSubmit} className="flex gap-2">
+        <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-2">
           <input
             className="flex-1 bg-[#1e1e1e] border border-[#333] text-white rounded-xl p-2 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
             value={input}
@@ -92,7 +108,7 @@ export default function Dashboard() {
             disabled={loading}
           />
           <button
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 rounded-xl transition disabled:opacity-50"
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl transition disabled:opacity-50"
             disabled={loading}
           >
             {loading ? 'Sending...' : 'Send'}
@@ -101,10 +117,19 @@ export default function Dashboard() {
       </div>
 
       {/* Right Side: Live Preview */}
-      <div className="w-1/2">
-        <h2 className="text-lg font-semibold mb-2 text-gray-200">Live Preview</h2>
-        <iframe
-          className="border border-[#2e2e2e] w-full h-[80vh] rounded-xl bg-[#1e1e1e]"
+      <div className="w-full lg:w-1/2">
+        <div className="flex justify-between items-center pb-2">
+            <h2 className="text-lg font-semibold text-gray-200">Live Preview</h2>
+            <button
+              onClick={handleDownload}
+              disabled={!previewHTML}
+              className="text-sm bg-green-600 hover:bg-green-700 px-3 py-1 rounded-lg transition disabled:opacity-50"
+            >
+              Download as HTML
+            </button>
+          </div>     
+     <iframe
+          className="border border-[#2e2e2e] w-full h-[50vh] md:h-[65vh] lg:h-[80vh] rounded-xl bg-[#1e1e1e]"
           srcDoc={previewHTML}
           sandbox="allow-same-origin allow-popups allow-forms allow-scripts"
           allow="clipboard-write"
